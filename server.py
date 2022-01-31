@@ -3,7 +3,7 @@ from upcunet_v3 import RealWaifuUpScaler
 from cv2 import imread, imencode
 from flask import Flask, request
 from gevent import pywsgi
-from urllib.request import unquote, quote
+from urllib.request import unquote
 from sys import argv
 from urllib3 import PoolManager
 from time import time
@@ -11,10 +11,12 @@ from io import BytesIO
 from hashlib import md5
 from os import mkdir
 from os.path import exists
+from threading import Lock
 
 app = Flask(__name__)
 pool = PoolManager()
 ups = {}
+upsstat = {}
 
 def get_arg(key: str) -> str:
     return request.args.get(key)
@@ -28,17 +30,25 @@ def clear_pool() -> None:
 
 # frame, result is all cv2 image
 def calc(model: str, scale: int, tile: int, frame):
-    model = f"weights_v3/up{scale}x-latest-{model}.pth"
     m = f"{model}_{tile}"
-    if m in ups: m = ups[m]
+    if m in ups:
+        r = upsstat[m]
+        m = ups[m]
     else:
+        r = Lock()
+        upsstat[m] = r
         ups[m] = RealWaifuUpScaler(scale, model, half=False, device="cpu:0")
         m = ups[m]
-    return m(frame, tile_mode=tile)[:, :, ::-1]
+    r.acquire()
+    img = m(frame, tile_mode=tile)[:, :, ::-1]
+    r.release()
+    return img
 
 # path is input image path, result is cv2 image
 def calcpath(model: str, scale: int, tile: int, path: str):
     return calc(model, scale, tile, imread(path)[:, :, [2, 1, 0]])
+
+MODEL_LIST = ["conservative", "no-denoise", "denoise1x", "denoise2x", "denoise3x"]
 
 @app.route("/scale", methods=['GET', 'POST'])
 def scale():
@@ -52,6 +62,14 @@ def scale():
     if tile == None: tile = "2"
     scale = int(scale)
     tile = int(tile)
+
+    if model not in MODEL_LIST: return "400 BAD REQUEST: no such model", 400
+    if scale not in [2, 3, 4]: return "400 BAD REQUEST: no such scale", 400
+    if tile not in range(5): return "400 BAD REQUEST: no such tile", 400
+
+    model = f"weights_v3/up{scale}x-latest-{model}.pth"
+    if not exists(model): return "400 BAD REQUEST: no such model", 400
+
     if request.method == 'GET':
         url = get_arg("url")
         if url == None: return "400 BAD REQUEST: no url", 400
@@ -64,22 +82,16 @@ def scale():
     else:
         data = request.get_data()
     if not len(data): return "400 BAD REQUEST: zero data len", 400
-    m = "tmp/"+md5(data+model.encode()+f"{scale}_{tile}".encode()).hexdigest()
+    m = "tmp/"+md5(data+f"{model}_{tile}".encode()).hexdigest()
     if exists(m):
-        with open(m, "rb") as f:
-            data = f.read()
-            f.close()
+        with open(m, "rb") as f: data = f.read()
     else:
-        with open(m, "wb") as f:
-            f.write(data)
-            f.close()
+        with open(m, "wb") as f: f.write(data)
         img = calcpath(model, scale, tile, m)
         _, data = imencode(".webp", img)
         data = data.tobytes()
         if not len(data): return "400 BAD REQUEST: zero output data len", 400
-        with open(m, "wb") as f:
-            f.write(data)
-            f.close()
+        with open(m, "wb") as f: f.write(data)
     return data, 200, {"Content-Type": "image/webp", "Content-Length": len(data)}
 
 def handle_client():
