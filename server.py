@@ -14,6 +14,7 @@ from os.path import exists
 
 app = Flask(__name__)
 pool = PoolManager()
+ups = {}
 
 def get_arg(key: str) -> str:
     return request.args.get(key)
@@ -28,7 +29,12 @@ def clear_pool() -> None:
 # frame, result is all cv2 image
 def calc(model: str, scale: int, tile: int, frame):
     model = f"weights_v3/up{scale}x-latest-{model}.pth"
-    return RealWaifuUpScaler(scale, model, half=False, device="cpu:0")(frame, tile_mode=tile)[:, :, ::-1]
+    m = f"{model}_{tile}"
+    if m in ups: m = ups[m]
+    else:
+        ups[m] = RealWaifuUpScaler(scale, model, half=False, device="cpu:0")
+        m = ups[m]
+    return m(frame, tile_mode=tile)[:, :, ::-1]
 
 # path is input image path, result is cv2 image
 def calcpath(model: str, scale: int, tile: int, path: str):
@@ -70,6 +76,10 @@ def scale():
         img = calcpath(model, scale, tile, m)
         _, data = imencode(".webp", img)
         data = data.tobytes()
+        if not len(data): return "400 BAD REQUEST: zero output data len", 400
+        with open(m, "wb") as f:
+            f.write(data)
+            f.close()
     return data, 200, {"Content-Type": "image/webp", "Content-Length": len(data)}
 
 def handle_client():
