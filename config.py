@@ -16,7 +16,7 @@ half=False
 tile=3
 
 #超图像设置
-device="cpu:0"#0代表卡号，多卡的话可以写不同config并行开，显存多的话一张卡也可以开多个
+device="cpu"#0代表卡号，多卡的话可以写不同config并行开，显存多的话一张卡也可以开多个
 input_dir="in.png"#输入图像路径
 output_dir="out3x.png"#超分图像输出路径
 

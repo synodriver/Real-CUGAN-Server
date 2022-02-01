@@ -65,7 +65,7 @@ def scale():
 
     if model not in MODEL_LIST: return "400 BAD REQUEST: no such model", 400
     if scale not in [2, 3, 4]: return "400 BAD REQUEST: no such scale", 400
-    if tile not in range(32): return "400 BAD REQUEST: no such tile", 400
+    if tile not in range(9): return "400 BAD REQUEST: no such tile", 400
 
     model = f"weights_v3/up{scale}x-latest-{model}.pth"
     if not exists(model): return "400 BAD REQUEST: no such model", 400
