@@ -261,20 +261,12 @@ class UpCunet2x(nn.Module):#完美tile，全程无损
                 crop_size_h=((h0-1)//4*4+4)//2#减半后能被2整除，所以要先被4整除
                 crop_size_w=(w0-1)//2*2+2#能被2整除
             crop_size=(crop_size_h,crop_size_w)#6.6G
-        elif(tile_mode==2):#hw都减半
-            crop_size=(((h0-1)//4*4+4)//2,((w0-1)//4*4+4)//2)#5.6G
-        elif(tile_mode==3):#hw都三分之一
-            crop_size=(((h0-1)//6*6+6)//3,((w0-1)//6*6+6)//3)#4.2G
-        elif(tile_mode==4):#hw都四分之一
-            crop_size=(((h0-1)//8*8+8)//4,((w0-1)//8*8+8)//4)#3.7G
-        elif(tile_mode==5):#hw都五分之一
-            crop_size=(((h0-1)//10*10+10)//5,((w0-1)//10*10+10)//5)
-        elif(tile_mode==6):#hw都六分之一
-            crop_size=(((h0-1)//12*12+12)//6,((w0-1)//12*12+12)//6)
-        elif(tile_mode==7):#hw都七分之一
-            crop_size=(((h0-1)//14*14+14)//7,((w0-1)//14*14+14)//7)
-        elif(tile_mode==8):#hw都八分之一
-            crop_size=(((h0-1)//16*16+16)//8,((w0-1)//16*16+16)//8)
+            #hw都减半 5.6G
+            #hw都三分之一 4.2G
+            #hw都四分之一 3.7G
+        else:
+            s = tile_mode*2
+            crop_size=(((h0-1)//s*s+s)//tile_mode,((w0-1)//s*s+s)//tile_mode)
         ph = ((h0 - 1) // crop_size[0] + 1) * crop_size[0]
         pw = ((w0 - 1) // crop_size[1] + 1) * crop_size[1]
         x=F.pad(x,(18,18+pw-w0,18,18+ph-h0),'reflect')
