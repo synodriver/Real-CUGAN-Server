@@ -10,7 +10,6 @@ from time import time
 from hashlib import md5
 from os import mkdir
 from os.path import exists
-from threading import Lock
 
 app = Flask(__name__)
 pool = PoolManager()
