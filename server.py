@@ -1,13 +1,12 @@
-from sklearn.preprocessing import scale
+from numpy import frombuffer, uint8
 from upcunet_v3 import RealWaifuUpScaler
-from cv2 import imread, imencode
+from cv2 import imencode, imdecode, IMREAD_UNCHANGED
 from flask import Flask, request
 from gevent import pywsgi
 from urllib.request import unquote
 from sys import argv
 from urllib3 import PoolManager
 from time import time
-from io import BytesIO
 from hashlib import md5
 from os import mkdir
 from os.path import exists
@@ -16,7 +15,6 @@ from threading import Lock
 app = Flask(__name__)
 pool = PoolManager()
 ups = {}
-upsstat = {}
 
 def get_arg(key: str) -> str:
     return request.args.get(key)
@@ -31,22 +29,22 @@ def clear_pool() -> None:
 # frame, result is all cv2 image
 def calc(model: str, scale: int, tile: int, frame):
     m = f"{model}_{tile}"
-    if m in ups:
-        r = upsstat[m]
-        m = ups[m]
+    if m in ups: m = ups[m]
     else:
-        r = Lock()
-        upsstat[m] = r
         ups[m] = RealWaifuUpScaler(scale, model, half=False, device="cpu:0")
         m = ups[m]
-    r.acquire()
     img = m(frame, tile_mode=tile)[:, :, ::-1]
-    r.release()
+    del frame
     return img
 
-# path is input image path, result is cv2 image
-def calcpath(model: str, scale: int, tile: int, path: str):
-    return calc(model, scale, tile, imread(path)[:, :, [2, 1, 0]])
+# data is image data, result is cv2 image
+# data will be deleted
+def calcdata(model: str, scale: int, tile: int, data: bytes):
+    umat = frombuffer(data, uint8)
+    del data
+    frame = imdecode(umat, IMREAD_UNCHANGED)[:, :, [2, 1, 0]]
+    del umat
+    return calc(model, scale, tile, frame)
 
 MODEL_LIST = ["conservative", "no-denoise", "denoise1x", "denoise2x", "denoise3x"]
 
@@ -79,18 +77,17 @@ def scale():
         r = pool.request('GET', url)
         data = r.data
         r.release_conn()
+        del r
     else:
-        data = request.get_data()
+        data = request.get_data(as_text=False)
     if not len(data): return "400 BAD REQUEST: zero data len", 400
     m = "tmp/"+md5(data+f"{model}_{tile}".encode()).hexdigest()
     if exists(m):
         with open(m, "rb") as f: data = f.read()
     else:
-        with open(m, "wb") as f: f.write(data)
-        img = calcpath(model, scale, tile, m)
-        _, data = imencode(".webp", img)
+        _, data = imencode(".webp", calcdata(model, scale, tile, data))
         data = data.tobytes()
-        if not len(data): return "400 BAD REQUEST: zero output data len", 400
+        if not len(data): return "500 Internal Server Error: zero output data len", 500
         with open(m, "wb") as f: f.write(data)
     return data, 200, {"Content-Type": "image/webp", "Content-Length": len(data)}
 
