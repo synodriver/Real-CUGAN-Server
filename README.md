@@ -11,8 +11,8 @@
 		<td align="center"><img src="opt-dir-all-test/in_2x_tile0.png"></td>
 	</tr>
 	<tr>
-		<td align="center"><img src="input_dir1/in_3d.png"></td>
-		<td align="center"><img src="opt-dir-all-test/out_3d.png"></td>
+		<td align="center"><img src="input_dir1/in_3d.jpg"></td>
+		<td align="center"><img src="opt-dir-all-test/out_3d.jpg"></td>
 	</tr>
     <tr>
 		<td align="center">输入</td>
