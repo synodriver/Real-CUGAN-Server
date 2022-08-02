@@ -28,10 +28,9 @@ def clear_pool() -> None:
 # frame, result is all cv2 image
 def calc(model: str, scale: int, tile: int, frame):
     m = f"{model}_{tile}"
-    if m in ups: m = ups[m]
-    else:
+    if m not in ups:
         ups[m] = RealWaifuUpScaler(scale, model, half=False, device="cpu:0")
-        m = ups[m]
+    if m in ups: m = ups[m]
     img = m(frame, tile_mode=tile)[:, :, ::-1]
     del frame
     return img
@@ -54,9 +53,9 @@ def scale():
     tile = get_arg("tile")
     print(model, scale, tile)
 
-    if model == None: model = "no-denoise"
-    if scale == None: scale = "2"
-    if tile == None: tile = "2"
+    if model is None: model = "no-denoise"
+    if scale is None: scale = "2"
+    if tile is None: tile = "2"
     scale = int(scale)
     tile = int(tile)
 
@@ -69,7 +68,7 @@ def scale():
 
     if request.method == 'GET':
         url = get_arg("url")
-        if url == None: return "400 BAD REQUEST: no url", 400
+        if url is None: return "400 BAD REQUEST: no url", 400
         url = unquote(url)
         global pool
         clear_pool()
