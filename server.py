@@ -1,6 +1,7 @@
 from hashlib import md5
 # from os import mkdir
-from os.path import exists
+from io import BytesIO
+from os.path import exists, abspath, dirname, join
 # from sys import argv
 # from time import time
 # from urllib.request import unquote
@@ -14,7 +15,7 @@ import aiohttp
 
 from numpy import frombuffer, uint8
 
-from upcunet_v3 import RealWaifuUpScaler
+from .upcunet_v3 import RealWaifuUpScaler
 
 app = FastAPI(title=__name__)
 
@@ -58,7 +59,7 @@ def calcdata(model: str, scale: int, tile: int, data: bytes):
 
 
 MODEL_LIST = ["conservative", "no-denoise", "denoise1x", "denoise2x", "denoise3x"]
-
+CURRENT_FOLDER = abspath(dirname(__file__))
 
 @app.get("/scale")
 async def scale(model: Optional[str] = Query("no-denoise"), scale: Optional[int] = Query(2),
@@ -83,7 +84,7 @@ async def scale(model: Optional[str] = Query("no-denoise"), scale: Optional[int]
     if tile not in range(9):
         return UJSONResponse({"status": "no such tile"}, 400)
 
-    model = f"weights_v3/up{scale}x-latest-{model}.pth"
+    model = join(CURRENT_FOLDER, "weights_v3", f"up{scale}x-latest-{model}.pth")
     if not exists(model):
         return UJSONResponse({"status": "no such model"}, 400)
 
@@ -94,7 +95,7 @@ async def scale(model: Optional[str] = Query("no-denoise"), scale: Optional[int]
             data = await resp.read()
     if not data:
         return UJSONResponse({"status": "url resp no data"}, 400)
-    path = "./tmp/" + md5(data + f"{model}_{tile}".encode()).hexdigest()  # todo 加个选项控制缓存路径
+    path = join(CURRENT_FOLDER, "tmp" , md5(data + f"{model}_{tile}".encode()).hexdigest())  # todo 加个选项控制缓存路径
     if exists(path):
         with open(path, "rb") as f:
             data = f.read()
@@ -105,7 +106,7 @@ async def scale(model: Optional[str] = Query("no-denoise"), scale: Optional[int]
             return UJSONResponse({"status": "zero output data len"}, 500)
         with open(path, "wb") as f:
             f.write(data)
-    return StreamingResponse(data, 200, {"Content-Type": "image/webp"})
+    return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
     # return data, 200, {"Content-Type": "image/webp", "Content-Length": len(data)}
     # if request.method == "GET":
     #     url = get_arg("url")
@@ -146,14 +147,14 @@ async def scale_(model: Optional[str] = Query("no-denoise"), scale: Optional[int
     if tile not in range(9):
         return UJSONResponse({"status": "no such tile"}, 400)
 
-    model = f"weights_v3/up{scale}x-latest-{model}.pth"
+    model = join(CURRENT_FOLDER, "weights_v3", f"up{scale}x-latest-{model}.pth")
     if not exists(model):
         return UJSONResponse({"status": "no such model"}, 400)
 
-    data = file.read()
+    data = await file.read()
     if not data:
         return UJSONResponse({"status": "url resp no data"}, 400)
-    path = "./tmp/" + md5(data + f"{model}_{tile}".encode()).hexdigest()  # todo 加个选项控制缓存路径
+    path = join(CURRENT_FOLDER, "tmp" , md5(data + f"{model}_{tile}".encode()).hexdigest())  # todo 加个选项控制缓存路径
     if exists(path):
         with open(path, "rb") as f:
             data = f.read()
@@ -164,7 +165,8 @@ async def scale_(model: Optional[str] = Query("no-denoise"), scale: Optional[int
             return UJSONResponse({"status": "zero output data len"}, 500)
         with open(path, "wb") as f:
             f.write(data)
-    return StreamingResponse(data, 200, {"Content-Type": "image/webp"})
+    print(len(data))
+    return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
 
 # def handle_client():
 #     global app
