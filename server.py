@@ -18,18 +18,7 @@ app = FastAPI(title=__name__)
 
 ups = {}
 
-# def get_arg(key: str) -> str:
-#     return request.args.get(key)
-
-
 last_req_time = 0
-
-
-# def clear_pool() -> None:
-#     global pool, last_req_time
-#     if time() - last_req_time > 60:
-#         pool.clear()
-#         last_req_time = time()
 
 
 # frame, result is all cv2 image
@@ -67,18 +56,6 @@ async def scale(
     tile: Optional[int] = Query(2, description="tile 0-9"),
     url: Optional[str] = Query(None, description="url of a picture"),
 ):
-    # model = get_arg("model")
-    # scale = get_arg("scale")
-    # tile = get_arg("tile")
-    # print(model, scale, tile)
-    #
-    # if model is None:
-    #     model = "no-denoise"
-    # if scale is None:
-    #     scale = 2
-    # if tile is None:
-    #     tile = 2
-
     if model not in MODEL_LIST:
         return UJSONResponse({"status": "no such model"}, 400)
     if scale not in [2, 3, 4]:
@@ -113,34 +90,6 @@ async def scale(
         with open(path, "wb") as f:
             f.write(data)
     return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
-    # return data, 200, {"Content-Type": "image/webp", "Content-Length": len(data)}
-    # if request.method == "GET":
-    #     url = get_arg("url")
-    #     if url == None:
-    #         return "400 BAD REQUEST: no url", 400
-    #     url = unquote(url)
-    #     global pool
-    #     clear_pool()
-    #     r = pool.request("GET", url)
-    #     data = r.data
-    #     r.release_conn()
-    #     del r
-    # else:
-    #     data = request.get_data(as_text=False)
-    # if not len(data):
-    #     return "400 BAD REQUEST: zero data len", 400
-    # m = "tmp/" + md5(data + f"{model}_{tile}".encode()).hexdigest()
-    # if exists(m):
-    #     with open(m, "rb") as f:
-    #         data = f.read()
-    # else:
-    #     _, data = imencode(".webp", calcdata(model, scale, tile, data))
-    #     data = data.tobytes()
-    #     if not len(data):
-    #         return "500 Internal Server Error: zero output data len", 500
-    #     with open(m, "wb") as f:
-    #         f.write(data)
-    # return data, 200, {"Content-Type": "image/webp", "Content-Length": len(data)}
 
 
 @app.post("/scale")
@@ -179,20 +128,3 @@ async def scale_(
             f.write(data)
     # print(len(data))
     return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
-
-
-# def handle_client():
-#     global app
-#     host = argv[1]
-#     port = int(argv[2])
-#     print("Starting SC at:", host, port)
-#     pywsgi.WSGIServer((host, port), app).serve_forever()
-
-
-# if __name__ == "__main__":
-#     if not exists("tmp"):
-#         mkdir("tmp", 0o755)
-#     if len(argv) == 3:
-#         handle_client()
-#     else:
-#         print("Usage: <host> <port>")
