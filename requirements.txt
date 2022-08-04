@@ -1,0 +1,12 @@
+numpy
+opencv-python-headless
+aiohttp
+python-multipart
+uvloop
+ujson
+requests
+fastapi
+gunicorn
+nonecorn==0.13.2dev3
+-f https://download.pytorch.org/whl/torch_stable.html
+torch==1.12.0+cu116
