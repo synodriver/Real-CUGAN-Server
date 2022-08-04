@@ -12,6 +12,7 @@ import aiohttp
 from numpy import frombuffer, uint8
 
 from .upcunet_v3 import RealWaifuUpScaler
+from .utils import run_sync
 
 app = FastAPI(title=__name__)
 
@@ -46,6 +47,7 @@ def calc(model: str, scale: int, tile: int, frame):
 
 # data is image data, result is cv2 image
 # data will be deleted
+@run_sync
 def calcdata(model: str, scale: int, tile: int, data: bytes):
     umat = frombuffer(data, uint8)
     del data
@@ -103,7 +105,7 @@ async def scale(
             data = f.read()
     else:
         _, data = imencode(
-            ".webp", calcdata(model, scale, tile, data)
+            ".webp", await calcdata(model, scale, tile, data)
         )  # todo 这里改成传memoryview?
         data = data.tobytes()
         if not data:
@@ -169,7 +171,7 @@ async def scale_(
         with open(path, "rb") as f:
             data = f.read()
     else:
-        _, data = imencode(".webp", calcdata(model, scale, tile, data))
+        _, data = imencode(".webp", await calcdata(model, scale, tile, data))
         data = data.tobytes()
         if not data:
             return UJSONResponse({"status": "zero output data len"}, 500)
