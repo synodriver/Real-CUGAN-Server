@@ -1,14 +1,10 @@
 from hashlib import md5
-# from os import mkdir
 from io import BytesIO
 from os.path import exists, abspath, dirname, join
-# from sys import argv
-# from time import time
-# from urllib.request import unquote
 from typing import Optional
 
 from cv2 import IMREAD_UNCHANGED, imdecode, imencode
-# from flask import Flask, request
+
 from fastapi import FastAPI, Query, File, UploadFile
 from fastapi.responses import UJSONResponse, StreamingResponse
 import aiohttp
@@ -61,10 +57,14 @@ def calcdata(model: str, scale: int, tile: int, data: bytes):
 MODEL_LIST = ["conservative", "no-denoise", "denoise1x", "denoise2x", "denoise3x"]
 CURRENT_FOLDER = abspath(dirname(__file__))
 
+
 @app.get("/scale")
-async def scale(model: Optional[str] = Query("no-denoise"), scale: Optional[int] = Query(2),
-                tile: Optional[int] = Query(2),
-                url: Optional[str] = Query(None)):
+async def scale(
+    model: Optional[str] = Query("no-denoise", description="which model to use"),
+    scale: Optional[int] = Query(2, description="scale size 2-4"),
+    tile: Optional[int] = Query(2, description="tile 0-9"),
+    url: Optional[str] = Query(None, description="url of a picture"),
+):
     # model = get_arg("model")
     # scale = get_arg("scale")
     # tile = get_arg("tile")
@@ -95,12 +95,16 @@ async def scale(model: Optional[str] = Query("no-denoise"), scale: Optional[int]
             data = await resp.read()
     if not data:
         return UJSONResponse({"status": "url resp no data"}, 400)
-    path = join(CURRENT_FOLDER, "tmp" , md5(data + f"{model}_{tile}".encode()).hexdigest())  # todo 加个选项控制缓存路径
+    path = join(
+        CURRENT_FOLDER, "tmp", md5(data + f"{model}_{tile}".encode()).hexdigest()
+    )  # todo 加个选项控制缓存路径
     if exists(path):
         with open(path, "rb") as f:
             data = f.read()
     else:
-        _, data = imencode(".webp", calcdata(model, scale, tile, data))  # todo 这里改成传memoryview?
+        _, data = imencode(
+            ".webp", calcdata(model, scale, tile, data)
+        )  # todo 这里改成传memoryview?
         data = data.tobytes()
         if not data:
             return UJSONResponse({"status": "zero output data len"}, 500)
@@ -138,8 +142,12 @@ async def scale(model: Optional[str] = Query("no-denoise"), scale: Optional[int]
 
 
 @app.post("/scale")
-async def scale_(model: Optional[str] = Query("no-denoise"), scale: Optional[int] = Query(2),
-                 tile: Optional[int] = Query(2), file: UploadFile = File(...)):
+async def scale_(
+    model: Optional[str] = Query("no-denoise", description="which model to use"),
+    scale: Optional[int] = Query(2, description="scale size 2-4"),
+    tile: Optional[int] = Query(2, description="tile 0-9"),
+    file: UploadFile = File(..., description="a picture"),
+):
     if model not in MODEL_LIST:
         return UJSONResponse({"status": "no such model"}, 400)
     if scale not in [2, 3, 4]:
@@ -154,7 +162,9 @@ async def scale_(model: Optional[str] = Query("no-denoise"), scale: Optional[int
     data = await file.read()
     if not data:
         return UJSONResponse({"status": "url resp no data"}, 400)
-    path = join(CURRENT_FOLDER, "tmp" , md5(data + f"{model}_{tile}".encode()).hexdigest())  # todo 加个选项控制缓存路径
+    path = join(
+        CURRENT_FOLDER, "tmp", md5(data + f"{model}_{tile}".encode()).hexdigest()
+    )  # todo 加个选项控制缓存路径
     if exists(path):
         with open(path, "rb") as f:
             data = f.read()
@@ -165,8 +175,9 @@ async def scale_(model: Optional[str] = Query("no-denoise"), scale: Optional[int
             return UJSONResponse({"status": "zero output data len"}, 500)
         with open(path, "wb") as f:
             f.write(data)
-    print(len(data))
+    # print(len(data))
     return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
+
 
 # def handle_client():
 #     global app
