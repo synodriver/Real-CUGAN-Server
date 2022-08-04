@@ -1,5 +1,5 @@
 # Real-CUGAN server
-> [叔叔的模型](https://github.com/bilibili/ailab/tree/main/Real-CUGAN)的 http API
+> [鼠鼠的模型](https://github.com/bilibili/ailab/tree/main/Real-CUGAN)的 http API
 
 默认使用`CPU`进行计算，如果服务器有`GPU`请自行修改代码。
 
