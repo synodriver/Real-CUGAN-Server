@@ -21,9 +21,7 @@
 </table>
 
 ## 命令行参数
-```bash
-python3 server.py <host> <port>
-```
+使用fastapi
 
 - 会缓存图片到`./tmp`，下次请求相同图片则不进行计算直接返回。
 - 服务器内存`8GB`时，最大约可处理`1080p`图片。
