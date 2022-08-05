@@ -29,9 +29,13 @@
 
 ## API
 #### 必要参数
+- http://host:port/docs 自动生成的文档
+
 > GET http://host:port/scale?url=图片链接
 
 > POST http://host:port/scale BODY: 图片
+
+> GET http://host:port/clear 清除缓存
 #### 可选参数
 > model=[conservative, no-denoise, denoise1x, denoise2x, denoise3x]
 

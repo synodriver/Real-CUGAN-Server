@@ -1,9 +1,11 @@
+import os
 import time
 from hashlib import md5
 from io import BytesIO
 from os.path import abspath, dirname, exists, join
 from typing import Optional
 
+import aiofiles
 import aiohttp
 from cv2 import IMREAD_UNCHANGED, imdecode, imencode
 from fastapi import FastAPI, File, Query, Request, UploadFile
@@ -78,8 +80,8 @@ async def scale(
         CURRENT_FOLDER, "tmp", md5(data + f"{model}_{tile}".encode()).hexdigest()
     )  # todo 加个选项控制缓存路径
     if exists(path):
-        with open(path, "rb") as f:
-            data = f.read()
+        async with aiofiles.open(path, "rb") as f:
+            data = await f.read()
     else:
         _, data = imencode(
             f".{format}", await calcdata(model, scale, tile, data)
@@ -87,8 +89,8 @@ async def scale(
         data = data.tobytes()
         if not data:
             return UJSONResponse({"status": "zero output data len"}, 500)
-        with open(path, "wb") as f:
-            f.write(data)
+        async with aiofiles.open(path, "wb") as f:
+            await f.write(data)
     return StreamingResponse(BytesIO(data), 200, {"Content-Type": f"image/{format}"})
 
 
@@ -118,17 +120,26 @@ async def scale_(
         CURRENT_FOLDER, "tmp", md5(data + f"{model}_{tile}".encode()).hexdigest()
     )  # todo 加个选项控制缓存路径
     if exists(path):
-        with open(path, "rb") as f:
-            data = f.read()
+        async with aiofiles.open(path, "rb") as f:
+            data = await f.read()
     else:
         _, data = imencode(f".{format}", await calcdata(model, scale, tile, data))
         data = data.tobytes()
         if not data:
             return UJSONResponse({"status": "zero output data len"}, 500)
-        with open(path, "wb") as f:
-            f.write(data)
+        async with aiofiles.open(path, "wb") as f:
+            await f.write(data)
     # print(len(data))
     return StreamingResponse(BytesIO(data), 200, {"Content-Type": f"image/{format}"})
+
+
+@app.get("/clear")
+async def handle_clear():
+    path = join(CURRENT_FOLDER, "tmp")  # todo 加个选项控制缓存路径
+    for p in os.listdir(path):
+        if os.path.split(p)[-1] != "README.md":
+            os.remove(join(path, p))
+    return UJSONResponse({"status": "0"}, 200)
 
 
 @app.middleware("http")
