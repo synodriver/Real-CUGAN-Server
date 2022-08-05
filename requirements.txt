@@ -1,6 +1,8 @@
 numpy
 opencv-python-headless
 aiohttp
+aiofiles
+aiodns
 python-multipart
 uvloop
 ujson
