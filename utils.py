@@ -1,7 +1,8 @@
-from functools import wraps, partial
-import contextvars
 import asyncio
+import contextvars
+from functools import partial, wraps
 from typing import Any, Awaitable, Callable
+
 
 def run_sync(func: Callable[..., Any]) -> Callable[..., Awaitable[Any]]:
     """

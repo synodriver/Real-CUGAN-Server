@@ -23,6 +23,7 @@
 ## 命令行参数
 使用fastapi
 
+- asgiapp为```server:app```，可以使用各种asgi兼容服务器进行部署，简单的比如```hypercorn server:app --bind 0.0.0.0:80```，也可以使用gunicorn，[参考](https://github.com/synodriver/Docker-Real-CUGAN-Server)
 - 会缓存图片到`./tmp`，下次请求相同图片则不进行计算直接返回。
 - 服务器内存`8GB`时，最大约可处理`1080p`图片。
 

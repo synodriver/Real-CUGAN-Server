@@ -1,14 +1,13 @@
+import time
 from hashlib import md5
 from io import BytesIO
-from os.path import exists, abspath, dirname, join
+from os.path import abspath, dirname, exists, join
 from typing import Optional
 
-from cv2 import IMREAD_UNCHANGED, imdecode, imencode
-
-from fastapi import FastAPI, Query, File, UploadFile
-from fastapi.responses import UJSONResponse, StreamingResponse
 import aiohttp
-
+from cv2 import IMREAD_UNCHANGED, imdecode, imencode
+from fastapi import FastAPI, File, Query, Request, UploadFile
+from fastapi.responses import StreamingResponse, UJSONResponse
 from numpy import frombuffer, uint8
 
 from .upcunet_v3 import RealWaifuUpScaler
@@ -128,3 +127,12 @@ async def scale_(
             f.write(data)
     # print(len(data))
     return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
