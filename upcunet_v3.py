@@ -50,10 +50,7 @@ class UNetConv(nn.Module):
             nn.Conv2d(mid_channels, out_channels, 3, 1, 0),
             nn.LeakyReLU(0.1, inplace=True),
         )
-        if se:
-            self.seblock = SEBlock(out_channels, reduction=8, bias=True)
-        else:
-            self.seblock = None
+        self.seblock = SEBlock(out_channels, reduction=8, bias=True) if se else None
 
     def forward(self, x):
         z = self.conv(x)
