@@ -13,7 +13,7 @@ from numpy import frombuffer, uint8
 from .upcunet_v3 import RealWaifuUpScaler
 from .utils import run_sync
 
-app = FastAPI(title=__name__)
+app = FastAPI(title="图片放大器")
 
 ups = {}
 
@@ -54,6 +54,7 @@ async def scale(
     scale: Optional[int] = Query(2, description="scale size 2-4"),
     tile: Optional[int] = Query(2, description="tile 0-9"),
     url: Optional[str] = Query(None, description="url of a picture"),
+    format: Optional[str] = Query("png", description="response format"),
 ):
     if model not in MODEL_LIST:
         return UJSONResponse({"status": "no such model"}, 400)
@@ -81,14 +82,14 @@ async def scale(
             data = f.read()
     else:
         _, data = imencode(
-            ".webp", await calcdata(model, scale, tile, data)
+            f".{format}", await calcdata(model, scale, tile, data)
         )  # todo 这里改成传memoryview?
         data = data.tobytes()
         if not data:
             return UJSONResponse({"status": "zero output data len"}, 500)
         with open(path, "wb") as f:
             f.write(data)
-    return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
+    return StreamingResponse(BytesIO(data), 200, {"Content-Type": f"image/{format}"})
 
 
 @app.post("/scale")
@@ -97,6 +98,7 @@ async def scale_(
     scale: Optional[int] = Query(2, description="scale size 2-4"),
     tile: Optional[int] = Query(2, description="tile 0-9"),
     file: UploadFile = File(..., description="a picture"),
+    format: Optional[str] = Query("png", description="response format"),
 ):
     if model not in MODEL_LIST:
         return UJSONResponse({"status": "no such model"}, 400)
@@ -119,14 +121,14 @@ async def scale_(
         with open(path, "rb") as f:
             data = f.read()
     else:
-        _, data = imencode(".webp", await calcdata(model, scale, tile, data))
+        _, data = imencode(f".{format}", await calcdata(model, scale, tile, data))
         data = data.tobytes()
         if not data:
             return UJSONResponse({"status": "zero output data len"}, 500)
         with open(path, "wb") as f:
             f.write(data)
     # print(len(data))
-    return StreamingResponse(BytesIO(data), 200, {"Content-Type": "image/webp"})
+    return StreamingResponse(BytesIO(data), 200, {"Content-Type": f"image/{format}"})
 
 
 @app.middleware("http")
