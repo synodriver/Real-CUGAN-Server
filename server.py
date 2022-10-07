@@ -25,11 +25,9 @@ last_req_time = 0
 # frame, result is all cv2 image
 def calc(model: str, scale: int, tile: int, frame):
     m = f"{model}_{tile}"
-    if m in ups:
-        m = ups[m]
-    else:
+    if m not in ups:
         ups[m] = RealWaifuUpScaler(scale, model, half=False, device="cpu:0")
-        m = ups[m]
+    m = ups[m]
     img = m(frame, tile_mode=tile)[:, :, ::-1]
     del frame
     return img
